@@ -19,12 +19,14 @@
 -(void) downloadFile:(CDVInvokedUrlCommand*)command {
     NSString * sourceUrl = [command.arguments objectAtIndex:0];
     NSString * fileName = [command.arguments objectAtIndex:1];
+    NSString * directoryName = [command.arguments objectAtIndex:2];
     
     [self.commandDelegate runInBackground:^{
+        CDVPluginResult* pluginResult;
         NSData* theData = [NSData dataWithContentsOfURL: [NSURL URLWithString:sourceUrl] ];
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES);
         NSString *libraryDirectory = [paths objectAtIndex:0];
-        NSString *newDir = [libraryDirectory stringByAppendingPathComponent:@"appimages"];
+        NSString *newDir = [libraryDirectory stringByAppendingPathComponent:directoryName];
         NSString *newFilePath = [newDir stringByAppendingString:[NSString stringWithFormat: @"/%@", fileName]];
         NSError *error=[[NSError alloc]init];
         
@@ -37,12 +39,16 @@
                 [self addSkipBackupAttributeToPath:newFilePath];
             }
         }
-        
-        CDVPluginResult* pluginResult;
+
         if (response == NO) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:[error description]];
         } else {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:newFilePath];
+            NSMutableDictionary * output = [[NSMutableDictionary alloc] init];
+            [output setObject:sourceUrl forKey:@"sourceUrl"];
+            [output setObject:fileName forKey:@"fileName"];
+            [output setObject:directoryName forKey:@"directoryName"];
+            [output setObject:newFilePath forKey:@"newFilePath"];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:output];
         }
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
